@@ -1,6 +1,6 @@
 //
 //  NetworkReachability.swift
-//  MoviesApp
+//  SPDNetwork
 //
 //  Created by SAMBIT DASH on 27/06/20.
 //  Copyright © 2020 SAMBIT DASH. All rights reserved.

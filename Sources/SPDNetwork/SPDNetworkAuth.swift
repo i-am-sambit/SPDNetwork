@@ -1,6 +1,6 @@
 //
 //  SPDNetworkAuth.swift
-//  MoviesApp
+//  SPDNetwork
 //
 //  Created by SAMBIT DASH on 01/07/20.
 //  Copyright © 2020 SAMBIT DASH. All rights reserved.

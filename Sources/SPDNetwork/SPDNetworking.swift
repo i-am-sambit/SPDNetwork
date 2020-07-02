@@ -1,6 +1,6 @@
 //
-//  NetworkManager.swift
-//  MoviesApp
+//  SPDNetworking.swift
+//  SPDNetwork
 //
 //  Created by SAMBIT DASH on 25/10/19.
 //  Copyright © 2019 SAMBIT DASH. All rights reserved.
