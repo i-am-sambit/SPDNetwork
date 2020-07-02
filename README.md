@@ -5,7 +5,7 @@ SPDNetwork is a pure Swift Library for networking. It also supports downloading 
 
 Installation
 ------------
-Currently SPDNetwork supports Swift package manager. 
+Currently SPDNetwork supports Swift package manager. `However, It is in development stage. It will be available soon`
 
 Installation with Swift Package Manager
 ----------------------------------------------
