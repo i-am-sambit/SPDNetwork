@@ -9,26 +9,84 @@ Currently SPDNetwork supports Swift package manager.
 
 Installation with Swift Package Manager
 ----------------------------------------------
-`
+```
 dependencies: [
     .package(url: "https://github.com/i-am-sambit/SPDNetwork", .upToNextMajor(from: "1.0.0"))
 ]
-`
+```
 
 
 Usage
--------
+=====
 
-Create URL
-`
-let url = try SPDNetworkURLBuilder("https://api.themoviedb.org/3/trending/movie/week")
-    .addQueryItem(name: QueryConstants.Keys.kAPIKey, value: QueryConstants.Values.kAPIKey)
-    .addQueryItem(name: QueryConstants.Keys.kLanguage, value: QueryConstants.Values.kLanguage)
-    .addQueryItem(name: QueryConstants.Keys.kPage, value: page)
-    .build()
-    `
+***
 
-`
-return try SPDNetworking<MoviesResponse>(url: url, method: .get).makeRequest()
-    .eraseToAnyPublisher()
-    `
+Create a datatask with combine framework
+
+1. Create the URL with SPDNetworkURLBuilder
+
+```
+import SPDNetwork
+
+let url = try? SPDNetworkURLBuilder("https://example.com")
+        .addQueryItem(name: "Key", value: "Value")
+        .build()
+```
+
+2. Make a **GET** request with SPDNetworking
+```
+do {
+    let subscriber = try SPDNetworking<YourResponseModel>(url: url, method: .get)
+    .makeRequest()
+    .sink(receiveCompletion: { (completionHandler) in
+        switch completionHandler {
+            
+        case .finished:
+            print("received succesfully...")
+        case .failure(let error):
+            print("error received : \(error.localizedDescription)")
+        }
+    }, receiveValue: { (response) in
+        // Handle response here...
+    })
+} catch let error {
+    print(error.localizedDescription)
+}
+```
+> `YourResponseModel` should confirm `Decodable` protocol
+
+3. Make a **POST** request with SPDNetworking
+
+Create a request Model
+```
+struct YourRequestModel: Encodable {
+    let username: String
+    let password: String
+}
+
+```
+
+Create an instance of request model and use that request model instance, while instantiating `SPDNetworking`
+```
+do {
+
+    let request: YourRequestModel = YourRequestModel(username: "username", password: "password")
+    
+    let subscriber = try SPDNetworking<MoviesResponse>(url: url, request: request, method: .post)
+    .makeRequest()
+    .sink(receiveCompletion: { (completionHandler) in
+        switch completionHandler {
+            
+        case .finished:
+            break
+        case .failure(let error):
+            print(error.localizedDescription)
+            // Handle error here
+        }
+    }, receiveValue: { (response) in
+        // Handle response
+    })
+} catch let error {
+    print(error.localizedDescription)
+}
+```
