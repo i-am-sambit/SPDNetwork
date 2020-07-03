@@ -19,6 +19,43 @@ open class SPDNetworking<Response: Decodable>: NSObject {
     
     private var rechability = SPDNetworkReachability.shared
     
+    
+    /// This is a designated initializer.
+    ///
+    /// This will encapsulate four properties of SPDNetworking.
+    /// - URL: You can construct a url with SPDNetworkURLBuilder or directly you can
+    ///        create a url with your url string.
+    ///
+    /// - Request Data: Create your encodable model with required data. e.g.
+    ///
+    ///       struct RequestModel: Encodable {
+    ///           let username: String
+    ///           let password: String
+    ///           // add your properties
+    ///       }
+    ///
+    ///       let request = RequestModel(username: "some username", password: "password")
+    ///
+    ///   You can create your own model like above.
+    ///
+    /// - Authentication: SPDNetworking supports 2 types of Authentication.
+    ///
+    ///   1. .noAuth - This is default. There will not use any authentication method.
+    ///   2. .basic - This will use basicAuth authentication method. You need to set username and password while using
+    ///               this auth type
+    ///
+    ///          .basic(username: "some username", password: "some password")
+    ///
+    ///   3. .oAuth - This will use OAuth 2.0 authentication method. You need to set authentication token, while using
+    ///               this auth type.
+    ///
+    ///          .oAuth(accessToken: "some access token")
+    ///
+    /// - Parameters:
+    ///   - url: requested URL
+    ///   - request: Set instance of your model. Your model should confirm to Encodable protocol.
+    ///   - method: Set method. Default is get.
+    ///   - auth: Set auth type.
     public init(url: URL,
          request: Encodable? = nil,
          method: SPDNetworkConstant.RequestMethod = .get,
@@ -60,23 +97,38 @@ open class SPDNetworking<Response: Decodable>: NSObject {
     }
     
     
-    /// Request
+    /// Invoke this method to fetch data from URL.
     ///
-    /// - Parameters:
-    ///   - onResult: onResult callback
-    public func makeRequest() throws -> AnyPublisher<Response, SPDNetworkError> {
+    /// This will use the url, requested data (if any), request method and
+    /// authentication type, that you have passed, while initiating the SPDNetworking.
+    ///
+    /// By using url, it will create a URLRequest instance.
+    ///
+    /// It will create data from request model instance and
+    /// attach it to URLRequest instance
+    ///
+    /// Also It will attach the request method to URLRequest instance.
+    ///
+    /// It will add the authentication value (if other than noAuth) to header
+    ///
+    ///
+    /// - Returns: a Publisher with Response and SPDNetworkError
+    public func makeRequest() -> AnyPublisher<Response, SPDNetworkError> {
         let session = URLSession(configuration: defaultSessionConfig)
-        return session.dataTaskPublisher(for: try getURLRequest())
+        
+        do {
+            return session.dataTaskPublisher(for: try getURLRequest())
             .map { $0.data }
-            .mapError { failure -> Error in
-                
-                return SPDNetworkError.apiError(reason: failure.localizedDescription)
-            }
+            .mapError { SPDNetworkError.apiError(reason: $0.localizedDescription) }
             .decode(type: Response.self, decoder: JSONDecoder())
-            .catch { failure in
-                Fail<Response, SPDNetworkError>(error: SPDNetworkError.apiError(reason: failure.localizedDescription))
-            }
+            .catch { Fail<Response, SPDNetworkError>(error: SPDNetworkError.apiError(reason: $0.localizedDescription)) }
             .eraseToAnyPublisher()
+            
+        } catch let error {
+            return Fail<Response, SPDNetworkError>(error: SPDNetworkError.apiError(reason: error.localizedDescription))
+                .eraseToAnyPublisher()
+        }
+        
     }
     
     public func downloadImage(completionHandler: @escaping((Result<Data, Error>) -> Void)) {

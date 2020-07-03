@@ -9,32 +9,33 @@
 import Foundation
 
 public final class SPDNetworkURLBuilder {
-    private enum WebServiceConstats {
-        static let kScheme          = "https"
-        static let kHost            = "api.themoviedb.org"
-        static let kImageHost       = "image.tmdb.org"
-        static let kDatabaseVersion = "/3"
-        static let kMovie           = "/movie"
-        static let kTV              = "/tv"
-        static let kImagePath       = "/t/p/w300_and_h300_bestv2"
-    }
-    
     private var components: URLComponents?
-    private var baseURL: String = ""
-    private lazy var posterPath: String = ""
     
     public init(_ baseUrl: String) {
         self.components = URLComponents(string: baseUrl)
     }
     
-    public func addQueryItem<Element>(name: String, value: Element) -> SPDNetworkURLBuilder  {
+    
+    /// Invoke addQueryItem, when you want to add more query items in your URL
+    /// e.g. - https://example.com?apikey=11111aaa
+    ///
+    /// - Parameters:
+    ///   - key: set the key of query. apikey is key in the above example.
+    ///   - value: set value to the key.
+    /// - Returns: same instance of SPDNetworkURLBuilder
+    public func addQueryItem<Element>(key: String, value: Element) -> SPDNetworkURLBuilder  {
         if self.components?.queryItems == nil {
             self.components?.queryItems = []
         }
-        self.components?.queryItems?.append(URLQueryItem(name: name, value: "\(value)"))
+        self.components?.queryItems?.append(URLQueryItem(name: key, value: "\(value)"))
         return self
     }
     
+    
+    /// Invoke build, when you add all your query items. It will build the URL.
+    ///
+    /// - Throws: error, if unable to build url
+    /// - Returns: returns URL
     public func build() throws -> URL {
         guard let url = self.components?.url else {
             throw SPDNetworkError.brokenURL
@@ -43,16 +44,5 @@ public final class SPDNetworkURLBuilder {
         return url
     }
     
-//    public func buildImageURL() throws -> URL {
-//        self.components.scheme = WebServiceConstats.kScheme
-//        self.components.host = WebServiceConstats.kImageHost
-//        self.components.path = WebServiceConstats.kImagePath + self.posterPath
-//
-//        guard let url = self.components.url else {
-//            throw SPDNetworkError.brokenURL
-//        }
-//
-//        return url
-//    }
 }
 
