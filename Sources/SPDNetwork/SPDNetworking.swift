@@ -9,7 +9,7 @@
 import Foundation
 import Combine
 
-open class SPDNetworking<Response: Decodable>: NSObject {
+open class SPDNetwork<Response: Decodable>: NSObject {
     private var url: URL
     private var request: Encodable?
     private var method: SPDNetworkConstant.RequestMethod
@@ -66,7 +66,7 @@ open class SPDNetworking<Response: Decodable>: NSObject {
         self.auth    = auth
     }
     
-    private var defaultSessionConfig: URLSessionConfiguration {
+    final public var defaultSessionConfig: URLSessionConfiguration {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 300.0
         config.timeoutIntervalForResource = 300.0
@@ -84,7 +84,7 @@ open class SPDNetworking<Response: Decodable>: NSObject {
     ///
     /// - Returns: URLRequest instance
     /// - Throws: error while enoding request
-    private func getURLRequest() throws -> URLRequest {
+    final public func getURLRequest() throws -> URLRequest {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = self.method.rawValue
         urlRequest.authenticate(with: auth)
@@ -111,23 +111,27 @@ open class SPDNetworking<Response: Decodable>: NSObject {
     ///
     /// It will add the authentication value (if other than noAuth) to header
     ///
-    ///
-    /// - Returns: a Publisher with Response and SPDNetworkError
-    public func makeRequest() -> AnyPublisher<Response, SPDNetworkError> {
-        let session = URLSession(configuration: defaultSessionConfig)
-        
+    /// - Parameter completionHandler: will be invoked, when response is received
+    public func makeRequest(completionHandler: @escaping (Result<Response, SPDNetworkError>) -> Void) {
         do {
-            return session.dataTaskPublisher(for: try getURLRequest())
-            .map { $0.data }
-            .mapError { SPDNetworkError.apiError(reason: $0.localizedDescription) }
-            .decode(type: Response.self, decoder: JSONDecoder())
-            .catch { Fail<Response, SPDNetworkError>(error: SPDNetworkError.apiError(reason: $0.localizedDescription)) }
-            .eraseToAnyPublisher()
+            let session = URLSession(configuration: defaultSessionConfig)
+            session.dataTask(with: try getURLRequest()) { (data, urlResponse, error) in
+                if let unwrappedError = error {
+                    completionHandler(.failure(SPDNetworkError.apiError(reason: unwrappedError.localizedDescription)))
+                } else if let data = data {
+                    data.convertToResponse(completionHandler: completionHandler)
+                }
+            }.resume()
+            session.finishTasksAndInvalidate()
             
         } catch let error {
-            return Fail<Response, SPDNetworkError>(error: SPDNetworkError.apiError(reason: error.localizedDescription))
-                .eraseToAnyPublisher()
+            completionHandler(.failure(SPDNetworkError.apiError(reason: error.localizedDescription)))
         }
+        
+    }
+    
+    func downloadRequest() {
+        let session = URLSession(configuration: downloadSessionConfig)
         
     }
     
@@ -153,6 +157,17 @@ open class SPDNetworking<Response: Decodable>: NSObject {
     }
     
     
+}
+
+fileprivate extension Data {
+    func convertToResponse<Response: Decodable>(completionHandler: @escaping((Result<Response, SPDNetworkError>) -> Void)) {
+        do {
+            let response = try JSONDecoder().decode(Response.self, from: self)
+            completionHandler(.success(response))
+        } catch let error {
+            completionHandler(.failure(SPDNetworkError.apiError(reason: error.localizedDescription)))
+        }
+    }
 }
 
 fileprivate extension Encodable {

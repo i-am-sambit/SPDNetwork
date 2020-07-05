@@ -1,6 +1,7 @@
 
 import SwiftUI
 
+@available(iOS 13.0, *)
 public struct SPDAsyncWebImage: View {
     private var url: URL
     private var placeHolder: Image?
@@ -33,6 +34,7 @@ public struct SPDAsyncWebImage: View {
     }
 }
 
+@available(iOS 13.0, *)
 struct SPDAsyncWebImage_Previews: PreviewProvider {
     static var previews: some View {
         SPDAsyncWebImage(url: URL(string: "https://image.tmdb.org/t/p/original/cDbOrc2RtIA37nLm0CzVpFLrdaG.jpg")!)
