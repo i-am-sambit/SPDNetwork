@@ -11,7 +11,7 @@ import SPDNetwork
 import Combine
 
 @available(iOS 13.0, *)
-public class SPDCNetwork<Response: Decodable>: SPDNetwork<Response> {
+public class SPDCNetworkManager: SPDNetworkManager {
     
     /// This is a designated initializer.
     ///
@@ -56,7 +56,7 @@ public class SPDCNetwork<Response: Decodable>: SPDNetwork<Response> {
         super.init(url: url, request: request, method: method, auth: auth)
     }
     
-    public func makeRequest() -> AnyPublisher<Response, SPDNetworkError> {
+    public func makeRequest<Response: Decodable>() -> AnyPublisher<Response, SPDNetworkError> {
         let session = URLSession(configuration: defaultSessionConfig)
         
         do {
