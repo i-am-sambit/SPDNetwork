@@ -20,8 +20,8 @@ open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownlo
     private var rechability = SPDNetworkReachability.shared
     
     private var downloadProgress: Progress = Progress()
-    var downloadProgressHandler: ((Progress) -> Void)?
-    var downloadCompletionHandler: ((Result<String, SPDNetworkError>) -> Void)?
+    private var downloadProgressHandler: ((Progress) -> Void)?
+    private var downloadCompletionHandler: ((Result<String, SPDNetworkError>) -> Void)?
     
     /// This is a designated initializer.
     ///
@@ -75,7 +75,9 @@ open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownlo
         config.timeoutIntervalForResource = 300.0
         config.allowsCellularAccess = true
         config.urlCache = URLCache.shared
-        config.waitsForConnectivity = true
+        if #available(OSX 10.13, *) {
+            config.waitsForConnectivity = true
+        }
         config.requestCachePolicy = .returnCacheDataElseLoad
         return config
     }
@@ -124,12 +126,14 @@ open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownlo
                 if let unwrappedError = error {
                     completionHandler(.failure(SPDNetworkError.apiError(reason: unwrappedError.localizedDescription)))
                 } else if let data = data {
-                    data.convertToResponse(completionHandler: completionHandler)
+                    let result: Result<Response, SPDNetworkError> = data.convertToResponse()
+                    completionHandler(result)
                 }
             }.resume()
             session.finishTasksAndInvalidate()
             
         } catch let error {
+            let encodingError: EncodingError = error as! EncodingError
             completionHandler(.failure(SPDNetworkError.apiError(reason: error.localizedDescription)))
         }
         
@@ -193,27 +197,3 @@ open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownlo
     }
 }
 
-fileprivate extension Data {
-    func convertToResponse<Response: Decodable>(completionHandler: @escaping((Result<Response, SPDNetworkError>) -> Void)) {
-        do {
-            let response = try JSONDecoder().decode(Response.self, from: self)
-            completionHandler(.success(response))
-        } catch let error {
-            completionHandler(.failure(SPDNetworkError.apiError(reason: error.localizedDescription)))
-        }
-    }
-}
-
-fileprivate extension Encodable {
-    func convertToData() throws -> Data {
-        return try JSONEncoder().encode(self)
-    }
-}
-
-private extension URLRequest {
-    mutating func authenticate(with auth: SPDNetworkAuth) {
-        if !auth.value.isEmpty {
-            self.addValue(auth.value, forHTTPHeaderField: SPDNetworkConstant.RequestHeader.authorization)
-        }
-    }
-}

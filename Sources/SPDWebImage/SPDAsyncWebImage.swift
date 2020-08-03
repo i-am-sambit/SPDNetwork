@@ -1,6 +1,12 @@
 
+#if os(macOS)
+import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 import SwiftUI
 
+@available(OSX 10.15, *)
 @available(iOS 13.0, *)
 public struct SPDAsyncWebImage: View {
     private var url: URL
@@ -34,6 +40,7 @@ public struct SPDAsyncWebImage: View {
     }
 }
 
+@available(OSX 10.15, *)
 @available(iOS 13.0, *)
 struct SPDAsyncWebImage_Previews: PreviewProvider {
     static var previews: some View {

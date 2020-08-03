@@ -37,7 +37,9 @@ public final class SPDNetworkURLBuilder {
     /// - Throws: error, if unable to build url
     /// - Returns: returns URL
     public func build() throws -> URL {
-        guard let url = self.components?.url else {
+        guard self.components?.scheme != nil,
+            self.components?.host != nil,
+            let url = self.components?.url else {
             throw SPDNetworkError.brokenURL
         }
         

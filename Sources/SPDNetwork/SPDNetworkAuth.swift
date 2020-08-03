@@ -14,19 +14,25 @@ public enum SPDNetworkAuth {
     case oAuth(accessToken: String)
     
     var value: String {
+        var authToken: String = ""
+        
         switch self {
             
         case .noAuth:
             break
         case .basic(username: let username, password: let password):
-            let credential = "\(username):\(password)"
-            guard let credentialData = credential.data(using: .utf8) else { return "" }
-            let encodedCredential = credentialData.base64EncodedString(options: .endLineWithLineFeed)
-            return "Basic \(encodedCredential)"
+            if !username.isEmpty, !password.isEmpty {
+                let credential = "\(username):\(password)"
+                guard let credentialData = credential.data(using: .utf8) else { return authToken }
+                let encodedCredential = credentialData.base64EncodedString(options: .endLineWithLineFeed)
+                authToken = "Basic \(encodedCredential)"
+            }
+            break
         case .oAuth(accessToken: let accessToken):
-            return "Bearer \(accessToken)"
+            authToken = "Bearer \(accessToken)"
+            break
         }
         
-        return ""
+        return authToken
     }
 }
