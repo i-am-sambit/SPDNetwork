@@ -27,6 +27,7 @@ Create a datatask with combine framework
 
 ```
 import SPDNetwork
+import SPDNetworkCombine
 
 let url = try? SPDNetworkURLBuilder("https://example.com")
         .addQueryItem(name: "Key", value: "Value")
@@ -36,7 +37,7 @@ let url = try? SPDNetworkURLBuilder("https://example.com")
 2. Make a **GET** request with SPDNetworking
 ```
 do {
-    let subscriber = try SPDNetworking<YourResponseModel>(url: url, method: .get)
+    let subscriber = try SPDCNetworking<YourResponseModel>(url: url, method: .get)
     .makeRequest()
     .sink(receiveCompletion: { (completionHandler) in
         switch completionHandler {
@@ -72,7 +73,7 @@ do {
 
     let request: YourRequestModel = YourRequestModel(username: "username", password: "password")
     
-    let subscriber = try SPDNetworking<MoviesResponse>(url: url, request: request, method: .post)
+    let subscriber = try SPDCNetworking<MoviesResponse>(url: url, request: request, method: .post)
     .makeRequest()
     .sink(receiveCompletion: { (completionHandler) in
         switch completionHandler {

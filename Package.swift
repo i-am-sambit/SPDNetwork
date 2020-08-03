@@ -5,11 +5,12 @@ import PackageDescription
 
 let package = Package(
     name: "SPDNetwork",
-    platforms: [.iOS(.v13)],
+    platforms: [.iOS(.v12), .macOS(SupportedPlatform.MacOSVersion.v10_14)],
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(name: "SPDNetwork", targets: ["SPDNetwork"]),
-        .library(name: "SPDWebImage", targets: ["SPDWebImage"])
+        .library(name: "SPDWebImage", targets: ["SPDWebImage"]),
+        .library(name: "SPDNetworkCombine", targets: ["SPDNetworkCombine"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -21,7 +22,11 @@ let package = Package(
         .target(
             name: "SPDNetwork",
             path: "Sources",
-            exclude: ["SPDWebImage"]),
+            exclude: ["SPDWebImage", "SPDNetworkCombine"]),
+        .target(name: "SPDNetworkCombine",
+                dependencies: ["SPDNetwork"],
+                path: "Sources",
+                sources: ["SPDNetworkCombine"]),
         .target(name: "SPDWebImage",
                 dependencies: ["SPDNetwork"],
                 path: "Sources",

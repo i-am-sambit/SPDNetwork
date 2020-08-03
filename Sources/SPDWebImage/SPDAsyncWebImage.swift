@@ -1,6 +1,13 @@
 
+#if os(macOS)
+import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 import SwiftUI
 
+@available(OSX 10.15, *)
+@available(iOS 13.0, *)
 public struct SPDAsyncWebImage: View {
     private var url: URL
     private var placeHolder: Image?
@@ -33,6 +40,8 @@ public struct SPDAsyncWebImage: View {
     }
 }
 
+@available(OSX 10.15, *)
+@available(iOS 13.0, *)
 struct SPDAsyncWebImage_Previews: PreviewProvider {
     static var previews: some View {
         SPDAsyncWebImage(url: URL(string: "https://image.tmdb.org/t/p/original/cDbOrc2RtIA37nLm0CzVpFLrdaG.jpg")!)

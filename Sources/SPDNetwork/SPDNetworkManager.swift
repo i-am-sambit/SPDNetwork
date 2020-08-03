@@ -9,7 +9,7 @@
 import Foundation
 import Combine
 
-open class SPDNetworking<Response: Decodable>: NSObject {
+open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownloadDelegate {
     private var url: URL
     private var request: Encodable?
     private var method: SPDNetworkConstant.RequestMethod
@@ -19,6 +19,9 @@ open class SPDNetworking<Response: Decodable>: NSObject {
     
     private var rechability = SPDNetworkReachability.shared
     
+    private var downloadProgress: Progress = Progress()
+    private var downloadProgressHandler: ((Progress) -> Void)?
+    private var downloadCompletionHandler: ((Result<String, SPDNetworkError>) -> Void)?
     
     /// This is a designated initializer.
     ///
@@ -66,25 +69,29 @@ open class SPDNetworking<Response: Decodable>: NSObject {
         self.auth    = auth
     }
     
-    private var defaultSessionConfig: URLSessionConfiguration {
+    final public var defaultSessionConfig: URLSessionConfiguration {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 300.0
         config.timeoutIntervalForResource = 300.0
         config.allowsCellularAccess = true
+        config.urlCache = URLCache.shared
+        if #available(OSX 10.13, *) {
+            config.waitsForConnectivity = true
+        }
+        config.requestCachePolicy = .returnCacheDataElseLoad
         return config
     }
     
-    private var downloadSessionConfig: URLSessionConfiguration {
-        let config = URLSessionConfiguration.background(withIdentifier: "")
+    func downloadSessionConfig(with identifier: String) -> URLSessionConfiguration {
+        let config = URLSessionConfiguration.background(withIdentifier: identifier)
         return config
     }
-    
     
     /// getURLRequest
     ///
     /// - Returns: URLRequest instance
     /// - Throws: error while enoding request
-    private func getURLRequest() throws -> URLRequest {
+    final public func getURLRequest() throws -> URLRequest {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = self.method.rawValue
         urlRequest.authenticate(with: auth)
@@ -111,27 +118,42 @@ open class SPDNetworking<Response: Decodable>: NSObject {
     ///
     /// It will add the authentication value (if other than noAuth) to header
     ///
-    ///
-    /// - Returns: a Publisher with Response and SPDNetworkError
-    public func makeRequest() -> AnyPublisher<Response, SPDNetworkError> {
-        let session = URLSession(configuration: defaultSessionConfig)
-        
+    /// - Parameter completionHandler: will be invoked, when response is received
+    public func makeRequest<Response: Decodable>(completionHandler: @escaping (Result<Response, SPDNetworkError>) -> Void) {
         do {
-            return session.dataTaskPublisher(for: try getURLRequest())
-            .map { $0.data }
-            .mapError { SPDNetworkError.apiError(reason: $0.localizedDescription) }
-            .decode(type: Response.self, decoder: JSONDecoder())
-            .catch { Fail<Response, SPDNetworkError>(error: SPDNetworkError.apiError(reason: $0.localizedDescription)) }
-            .eraseToAnyPublisher()
+            let session = URLSession(configuration: defaultSessionConfig)
+            session.dataTask(with: try getURLRequest()) { (data, urlResponse, error) in
+                if let unwrappedError = error {
+                    completionHandler(.failure(SPDNetworkError.apiError(reason: unwrappedError.localizedDescription)))
+                } else if let data = data {
+                    let result: Result<Response, SPDNetworkError> = data.convertToResponse()
+                    completionHandler(result)
+                }
+            }.resume()
+            session.finishTasksAndInvalidate()
             
         } catch let error {
-            return Fail<Response, SPDNetworkError>(error: SPDNetworkError.apiError(reason: error.localizedDescription))
-                .eraseToAnyPublisher()
+            let encodingError: EncodingError = error as! EncodingError
+            completionHandler(.failure(SPDNetworkError.apiError(reason: error.localizedDescription)))
         }
         
     }
     
-    public func downloadImage(completionHandler: @escaping((Result<Data, Error>) -> Void)) {
+    public func downloadRequest(progressHandler: @escaping (Progress) -> Void, completionHandler: @escaping (Result<String, SPDNetworkError>) -> Void) {
+        do {
+            self.downloadCompletionHandler = completionHandler
+            self.downloadProgressHandler = progressHandler
+            
+            let session = URLSession(configuration: downloadSessionConfig(with: url.absoluteString), delegate: self, delegateQueue: nil)
+            session.downloadTask(with: try getURLRequest()).resume()
+            session.finishTasksAndInvalidate()
+        } catch let error {
+            completionHandler(.failure(SPDNetworkError.apiError(reason: error.localizedDescription)))
+        }
+        
+    }
+    
+    func downloadImage(completionHandler: @escaping((Result<Data, Error>) -> Void)) {
         if let cachedData: Data = imageCache.object(forKey: self.url as NSURL) as Data? {
             completionHandler(.success(cachedData))
         }
@@ -152,19 +174,26 @@ open class SPDNetworking<Response: Decodable>: NSObject {
         }.resume()
     }
     
-    
-}
-
-fileprivate extension Encodable {
-    func convertToData() throws -> Data {
-        return try JSONEncoder().encode(self)
-    }
-}
-
-private extension URLRequest {
-    mutating func authenticate(with auth: SPDNetworkAuth) {
-        if !auth.value.isEmpty {
-            self.addValue(auth.value, forHTTPHeaderField: SPDNetworkConstant.RequestHeader.authorization)
+    public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        if let error = downloadTask.error {
+            self.downloadCompletionHandler?(.failure(SPDNetworkError.apiError(reason: error.localizedDescription)))
+        } else {
+            self.downloadCompletionHandler?(.success(location.absoluteString))
         }
     }
+    
+    public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        downloadProgress.totalUnitCount = totalBytesExpectedToWrite
+        downloadProgress.completedUnitCount = totalBytesWritten
+        self.downloadProgressHandler?(downloadProgress)
+    }
+    
+    public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didResumeAtOffset fileOffset: Int64, expectedTotalBytes: Int64) {
+        
+    }
+    
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        
+    }
 }
+

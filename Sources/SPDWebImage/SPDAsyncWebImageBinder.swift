@@ -12,6 +12,8 @@ import Combine
 import UIKit
 #endif
 
+@available(OSX 10.15, *)
+@available(iOS 13.0, *)
 class SPDAsyncWebImageBinder: ObservableObject {
     private var subscription: AnyCancellable?
     

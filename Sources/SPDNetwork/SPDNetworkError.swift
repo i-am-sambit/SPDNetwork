@@ -8,12 +8,12 @@
 
 import Foundation
 
-public enum SPDNetworkError: Error, LocalizedError {
+public enum SPDNetworkError: Error, LocalizedError, Equatable {
     case unknown
     case brokenURL
     case apiError(reason: String)
 
-    public var errorDescription: String? {
+    public var errorDescription: String {
         switch self {
         case .unknown:
             return "Unknown error"
