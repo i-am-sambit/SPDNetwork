@@ -9,7 +9,11 @@
 import Foundation
 import Combine
 
-open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownloadDelegate {
+open class SPDNetworkManager<Response: Decodable>: NSObject, URLSessionTaskDelegate, URLSessionDownloadDelegate {
+    public typealias CompletionHandler = (Result<Response, SPDNetworkError>) -> Void
+    public typealias ProgressHandler = ((Progress) -> Void)
+    public typealias DownloadCompletionHandler = ((Result<String, SPDNetworkError>) -> Void)
+    
     private var url: URL
     private var request: Encodable?
     private var method: SPDNetworkConstant.RequestMethod
@@ -20,8 +24,8 @@ open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownlo
     private var rechability = SPDNetworkReachability.shared
     
     private var downloadProgress: Progress = Progress()
-    private var downloadProgressHandler: ((Progress) -> Void)?
-    private var downloadCompletionHandler: ((Result<String, SPDNetworkError>) -> Void)?
+    private var downloadProgressHandler: ProgressHandler?
+    private var downloadCompletionHandler: DownloadCompletionHandler?
     
     /// This is a designated initializer.
     ///
@@ -119,7 +123,7 @@ open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownlo
     /// It will add the authentication value (if other than noAuth) to header
     ///
     /// - Parameter completionHandler: will be invoked, when response is received
-    public func makeRequest<Response: Decodable>(completionHandler: @escaping (Result<Response, SPDNetworkError>) -> Void) {
+    public func makeRequest(completionHandler: @escaping CompletionHandler) {
         do {
             let session = URLSession(configuration: defaultSessionConfig)
             session.dataTask(with: try getURLRequest()) { (data, urlResponse, error) in
@@ -139,7 +143,7 @@ open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownlo
         
     }
     
-    public func downloadRequest(progressHandler: @escaping (Progress) -> Void, completionHandler: @escaping (Result<String, SPDNetworkError>) -> Void) {
+    public func downloadRequest(progressHandler: @escaping ProgressHandler, completionHandler: @escaping DownloadCompletionHandler) {
         do {
             self.downloadCompletionHandler = completionHandler
             self.downloadProgressHandler = progressHandler
@@ -193,7 +197,9 @@ open class SPDNetworkManager: NSObject, URLSessionTaskDelegate, URLSessionDownlo
     }
     
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        
+        if let error = error {
+            self.downloadCompletionHandler?(.failure(SPDNetworkError.apiError(reason: error.localizedDescription)))
+        }
     }
 }
 

@@ -3,6 +3,7 @@ import XCTest
 
 final class SPDNetworkManagerTests: XCTestCase {
     var makeRequestExpectation: XCTestExpectation?
+    var downloadRequestExpectation: XCTestExpectation?
     
     func testMakeRequestSucess() {
         makeRequestExpectation = self.expectation(description: "MakeRequest")
@@ -104,4 +105,23 @@ final class SPDNetworkManagerTests: XCTestCase {
         waitForExpectations(timeout: 10.0, handler: nil)
     }
     
+    func testDownload() {
+        downloadRequestExpectation = self.expectation(description: "downloadRequestExpectation")
+        
+        let url: URL = URL(string: "https://image.tmdb.org/t/p/original/cDbOrc2RtIA37nLm0CzVpFLrdaG.jpg")!
+        SPDNetworkManager<String>(url: url).downloadRequest(progressHandler: { (progress) in
+            print("Download progress: \(progress)")
+        }) { (result) in
+            switch result {
+                
+            case .success(let localURL):
+                break
+            case .failure(let error):
+                XCTAssertEqual(error.errorDescription, SPDNetworkError.unknown.errorDescription.lowercased())
+                self.downloadRequestExpectation?.fulfill()
+            }
+        }
+        
+        waitForExpectations(timeout: 20.0, handler: nil)
+    }
 }

@@ -12,7 +12,7 @@ import Combine
 
 @available(OSX 10.15, *)
 @available(iOS 13.0, *)
-public class SPDCNetworkManager: SPDNetworkManager {
+public class SPDCNetworkManager<Response: Decodable>: SPDNetworkManager<Response> {
     
     /// This is a designated initializer.
     ///

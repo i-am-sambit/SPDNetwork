@@ -29,25 +29,30 @@ class SPDAsyncWebImageBinder: ObservableObject {
     @Published private(set) var isFinished: Bool = false
     @Published private(set) var isCanceled: Bool = false
     
-    func load(url: URL) {
+    func load(url: URL?) {
+        guard let kURL = url else {
+            self.image = nil
+            return
+        }
+        
         #if os(iOS)
-        if let image: UIImage = cache[url.absoluteString] {
+        if let image: UIImage = cache[kURL.absoluteString] {
             self.image = image
             return
         }
         #else
-        if let image: NSImage = cache[url.absoluteString] {
+        if let image: NSImage = cache[kURL.absoluteString] {
             self.image = image
             return
         }
         #endif
         
-        subscription = URLSession.shared.dataTaskPublisher(for: url)
+        subscription = URLSession.shared.dataTaskPublisher(for: kURL)
             .map { UIImage(data: $0.data) }
             .replaceError(with: nil)
             .receive(on: DispatchQueue.main)
             .handleEvents(receiveSubscription: { _ in self.isLoading = true },
-                          receiveOutput: { self.cache[url.absoluteString] = $0 },
+                          receiveOutput: { self.cache[kURL.absoluteString] = $0 },
                           receiveCompletion: { completion in self.isFinished = true },
                           receiveCancel: { self.isCanceled = true },
                           receiveRequest: { demand in })

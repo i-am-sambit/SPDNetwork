@@ -9,12 +9,12 @@ import SwiftUI
 @available(OSX 10.15, *)
 @available(iOS 13.0, *)
 public struct SPDAsyncWebImage: View {
-    private var url: URL
+    private var url: URL?
     private var placeHolder: Image?
     
     @ObservedObject var binder = SPDAsyncWebImageBinder()
     
-    public init(url: URL, placeHolder: Image? = nil) {
+    public init(url: URL?, placeHolder: Image? = nil) {
         self.url = url
         self.placeHolder = placeHolder
         self.binder.load(url: self.url)
